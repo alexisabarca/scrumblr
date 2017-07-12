@@ -9,6 +9,7 @@ var compression = require('compression');
 var express = require('express');
 var conf = require('./config.js').server;
 var ga = require('./config.js').googleanalytics;
+var fs = require('fs');
 
 /**************
  LOCAL INCLUDES
@@ -166,6 +167,11 @@ io.sockets.on('connection', function (client) {
 
 				getRoom(client, function(room) {
 					createCard( room, clean_data.id, clean_data.text, clean_data.x, clean_data.y, clean_data.rot, clean_data.colour);
+					
+					fs.appendFile('./log/scrumblr.log', '\n[' + getDateTime() + '] createCard id:' + clean_data.id + ' ' + client.user_name + '@' + room + ':' + clean_data.text, function (err) {
+					  if (err) throw err;
+					  console.log('Log saved createCard');
+					});					
 				});
 
 				message_out = {
@@ -186,6 +192,11 @@ io.sockets.on('connection', function (client) {
 				//send update to database
 				getRoom(client, function(room) {
 					db.cardEdit( room , clean_data.id, clean_data.value );
+					
+					fs.appendFile('./log/scrumblr.log', '\n[' + getDateTime() + '] editCard id:' + clean_data.id + ' ' + client.user_name + '@' + room + ':' + clean_data.value, function (err) {
+					  if (err) throw err;
+					  console.log('Log saved editCard');
+					});						
 				});
 
 				message_out = {
@@ -206,6 +217,11 @@ io.sockets.on('connection', function (client) {
 
 				getRoom( client, function(room) {
 					db.deleteCard ( room, clean_message.data.id );
+					
+					fs.appendFile('./log/scrumblr.log', '\n[' + getDateTime() + '] deleteCard id:' + clean_message.data.id + ' ' + client.user_name + '@' + room, function (err) {
+					  if (err) throw err;
+					  console.log('Log saved deleteCard');
+					});					
 				});
 
 				//report to all other browsers
@@ -218,6 +234,11 @@ io.sockets.on('connection', function (client) {
 
 				getRoom( client, function(room) {
 					db.createColumn( room, clean_message.data, function() {} );
+					
+					fs.appendFile('./log/scrumblr.log', '\n[' + getDateTime() + '] createColumn ' + clean_message.data + ' ' + client.user_name + '@' + room, function (err) {
+					  if (err) throw err;
+					  console.log('Log saved createColumn');
+					});					
 				});
 
 				broadcastToRoom( client, clean_message );
@@ -227,6 +248,11 @@ io.sockets.on('connection', function (client) {
 			case 'deleteColumn':
 				getRoom( client, function(room) {
 					db.deleteColumn(room);
+					
+					fs.appendFile('./log/scrumblr.log', '\n[' + getDateTime() + '] deleteColumn ' + ' ' + client.user_name + '@' + room, function (err) {
+					  if (err) throw err;
+					  console.log('Log saved deleteColumn');
+					});						
 				});
 				broadcastToRoom( client, { action: 'deleteColumn' } );
 
@@ -245,7 +271,7 @@ io.sockets.on('connection', function (client) {
 					clean_columns[i] = scrub( columns[i] );
 				}
 				getRoom( client, function(room) {
-					db.setColumns( room, clean_columns );
+					db.setColumns( room, clean_columns ); 
 				});
 
 				broadcastToRoom( client, { action: 'updateColumns', data: clean_columns } );
@@ -448,7 +474,30 @@ function roundRand( max )
 	return Math.floor(Math.random() * max);
 }
 
+function getDateTime() {
 
+    var date = new Date();
+
+    var hour = date.getHours();
+    hour = (hour < 10 ? "0" : "") + hour;
+
+    var min  = date.getMinutes();
+    min = (min < 10 ? "0" : "") + min;
+
+    var sec  = date.getSeconds();
+    sec = (sec < 10 ? "0" : "") + sec;
+
+    var year = date.getFullYear();
+
+    var month = date.getMonth() + 1;
+    month = (month < 10 ? "0" : "") + month;
+
+    var day  = date.getDate();
+    day = (day < 10 ? "0" : "") + day;
+
+    return year + ":" + month + ":" + day + ":" + hour + ":" + min + ":" + sec;
+
+}
 
 //------------ROOM STUFF
 // Get Room name for the given Session ID
